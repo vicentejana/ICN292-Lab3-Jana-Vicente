@@ -1,0 +1,212 @@
+{
+  "name": "ICN292 Lab3 - Resumen diario",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "days",
+              "daysInterval": 1,
+              "triggerAtHour": 23,
+              "triggerAtMinute": 55
+            }
+          ]
+        }
+      },
+      "id": "e0a22ad2-361c-5a30-8156-05d893ab4f59",
+      "name": "Cada día 23:55",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "row",
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "aENmPw9EKPd3JmQO",
+          "cachedResultName": "registro_devoluciones"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "createdAt",
+              "condition": "gte",
+              "keyValue": "={{ $today.toISO() }}"
+            },
+            {
+              "keyName": "modo_webhook",
+              "condition": "eq",
+              "keyValue": "production"
+            }
+          ]
+        },
+        "returnAll": true
+      },
+      "id": "d997e23b-deb7-5418-8eab-775fdd4d95a9",
+      "name": "Leer registro del día",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        240,
+        300
+      ],
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "fieldsToSummarize": {
+          "values": [
+            {
+              "aggregation": "count",
+              "field": "id_solicitud"
+            },
+            {
+              "aggregation": "sum",
+              "field": "monto"
+            }
+          ]
+        },
+        "fieldsToSplitBy": "ruta",
+        "options": {
+          "continueIfFieldNotFound": true,
+          "skipEmptySplitFields": true
+        }
+      },
+      "id": "abded082-e791-5654-8b84-aa584193c62c",
+      "name": "Resumir por ruta",
+      "type": "n8n-nodes-base.summarize",
+      "typeVersion": 1.1,
+      "position": [
+        480,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const filas = $input.all().map(i => i.json).filter(r => r.ruta);\nconst rutas = ['APROBACION', 'REVISION', 'RECHAZO', 'DATOS_INVALIDOS'];\nconst fmt = n => '$' + Math.round(n).toLocaleString('es-CL');\nconst total = filas.reduce((a, r) => a + (r.count_id_solicitud || 0), 0);\nconst fecha = $now.setZone('America/Santiago').toFormat('dd-MM-yyyy');\nif (total === 0) {\n  return [{ json: { fecha, total: 0, mensaje: `Resumen AndesHogar ${fecha}: hoy no se recibieron solicitudes de devolución.` } }];\n}\nconst lineas = rutas.map(ruta => {\n  const f = filas.find(r => r.ruta === ruta) || { count_id_solicitud: 0, sum_monto: 0 };\n  return `- ${ruta}: ${f.count_id_solicitud} solicitudes, monto ${fmt(f.sum_monto || 0)}`;\n});\nconst aprob = (filas.find(r => r.ruta === 'APROBACION') || {}).count_id_solicitud || 0;\nconst tasa = Math.round(aprob / total * 1000) / 10;\nconst texto = [`Resumen AndesHogar ${fecha}`, ...lineas, `Total: ${total} solicitudes`, `Tasa de aprobación automática: ${tasa}% (${aprob}/${total})`].join('\\n');\nreturn [{ json: { fecha, total, tasa_aprobacion_automatica: tasa, mensaje: texto } }];\n"
+      },
+      "id": "17149634-412e-577b-a6a1-619829e79c88",
+      "name": "Construir mensaje",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        720,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "manual",
+        "includeOtherFields": true,
+        "assignments": {
+          "assignments": [
+            {
+              "id": "s1",
+              "name": "para",
+              "value": "servicio.cliente@andeshogar.cl",
+              "type": "string"
+            },
+            {
+              "id": "s2",
+              "name": "asunto",
+              "value": "=Resumen diario de devoluciones {{ $json.fecha }}",
+              "type": "string"
+            },
+            {
+              "id": "s3",
+              "name": "canal",
+              "value": "email (simulado: la instancia no tiene credenciales SMTP)",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "61c7ea2c-3c7c-5b94-8e5e-35e9f3e8d252",
+      "name": "Enviar resumen",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        960,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## Resumen diario (Parte B)\nLee solo las filas creadas hoy en modo producción, agrupa por ruta con Summarize y envía **un solo mensaje**.\nSi no hubo solicitudes, \"Leer registro\" tiene Always Output Data = ON y el mensaje dice que no hubo movimiento.",
+        "color": 4
+      },
+      "id": "4da11886-196e-56f8-97bf-d733c1c98ff0",
+      "name": "Nota resumen",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        100,
+        120
+      ]
+    }
+  ],
+  "connections": {
+    "Cada día 23:55": {
+      "main": [
+        [
+          {
+            "node": "Leer registro del día",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Leer registro del día": {
+      "main": [
+        [
+          {
+            "node": "Resumir por ruta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Resumir por ruta": {
+      "main": [
+        [
+          {
+            "node": "Construir mensaje",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Construir mensaje": {
+      "main": [
+        [
+          {
+            "node": "Enviar resumen",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Santiago",
+    "errorWorkflow": "0rXwlZEa5wFh8dsa"
+  },
+  "active": false,
+  "tags": []
+}

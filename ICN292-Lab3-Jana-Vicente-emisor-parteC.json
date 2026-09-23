@@ -1,0 +1,156 @@
+{
+  "name": "ICN292 Lab3 - Emisor casos Parte C",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "c05e4621-3930-575e-bcb4-c6b81b906154",
+      "name": "Ejecutar casos Parte C",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const casos = [\n  { caso: 'C1 inválida: falta id_solicitud', body: { id_solicitud: '', sku: 'AU-210', unidades: '1', monto: '19990', dias_desde_compra: '3', estado_producto: 'sin_abrir', email_cliente: 'inv1@example.cl' } },\n  { caso: 'C1 inválida: monto negativo', body: { id_solicitud: 'DEV-INV2', sku: 'HV-050', unidades: '1', monto: '-15000', dias_desde_compra: '2', estado_producto: 'sin_abrir', email_cliente: 'inv2@example.cl' } },\n  { caso: 'C1 inválida: falta dias_desde_compra', body: { id_solicitud: 'DEV-INV3', sku: 'PL-120', unidades: '1', monto: '45990', estado_producto: 'sin_abrir', email_cliente: 'inv3@example.cl' } },\n  { caso: 'C3 límite: monto = U', body: { id_solicitud: 'DEV-LIM-U', sku: 'TE-330', unidades: '1', monto: '64000', dias_desde_compra: '3', estado_producto: 'sin_abrir', email_cliente: 'limu@example.cl' } },\n  { caso: 'C3 límite: días = D', body: { id_solicitud: 'DEV-LIM-D', sku: 'AU-210', unidades: '1', monto: '19990', dias_desde_compra: '7', estado_producto: 'sin_abrir', email_cliente: 'limd@example.cl' } },\n  { caso: 'C5 monto en palabras', body: { id_solicitud: 'DEV-VEINTE', sku: 'AU-210', unidades: '1', monto: 'veinte mil', dias_desde_compra: '2', estado_producto: 'sin_abrir', email_cliente: 'veinte@example.cl' } },\n  { caso: 'C5 SKU inexistente', body: { id_solicitud: 'DEV-ZZ999', sku: 'ZZ-999', unidades: '1', monto: '15000', dias_desde_compra: '2', estado_producto: 'sin_abrir', email_cliente: 'zz999@example.cl' } }\n];\nreturn casos.map(c => ({ json: c }));"
+      },
+      "id": "e703b384-21fd-58f7-9dd5-423cc377002d",
+      "name": "Cargar casos de error y borde",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        240,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://vicentejana.app.n8n.cloud/webhook/devoluciones-triage",
+        "authentication": "none",
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.body) }}",
+        "options": {
+          "batching": {
+            "batch": {
+              "batchSize": 1,
+              "batchInterval": 800
+            }
+          },
+          "response": {
+            "response": {
+              "neverError": true,
+              "fullResponse": true
+            }
+          },
+          "timeout": 30000
+        }
+      },
+      "id": "fa2a952c-c31f-5e03-b7b4-ba31186b65c2",
+      "name": "POST al webhook de triage",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        480,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "manual",
+        "includeOtherFields": false,
+        "assignments": {
+          "assignments": [
+            {
+              "id": "c1",
+              "name": "caso",
+              "value": "={{ $(\"Cargar casos de error y borde\").item.json.caso }}",
+              "type": "string"
+            },
+            {
+              "id": "c2",
+              "name": "entrada",
+              "value": "={{ JSON.stringify($(\"Cargar casos de error y borde\").item.json.body) }}",
+              "type": "string"
+            },
+            {
+              "id": "c3",
+              "name": "http_status",
+              "value": "={{ $json.statusCode }}",
+              "type": "number"
+            },
+            {
+              "id": "c4",
+              "name": "ruta",
+              "value": "={{ $json.body?.ruta ?? \"FALLO DEL FLUJO\" }}",
+              "type": "string"
+            },
+            {
+              "id": "c5",
+              "name": "detalle",
+              "value": "={{ $json.body?.motivo ?? JSON.stringify($json.body) }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {
+          "ignoreConversionErrors": true
+        }
+      },
+      "id": "bc38403f-d19b-5513-bc1b-a3b7f3f29b32",
+      "name": "Resultado por caso",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        720,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Ejecutar casos Parte C": {
+      "main": [
+        [
+          {
+            "node": "Cargar casos de error y borde",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cargar casos de error y borde": {
+      "main": [
+        [
+          {
+            "node": "POST al webhook de triage",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "POST al webhook de triage": {
+      "main": [
+        [
+          {
+            "node": "Resultado por caso",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "active": false,
+  "tags": []
+}

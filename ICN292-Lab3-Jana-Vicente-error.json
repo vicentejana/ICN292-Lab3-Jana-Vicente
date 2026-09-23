@@ -1,0 +1,194 @@
+{
+  "name": "ICN292 Lab3 - Manejo de errores",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "544b4227-034e-5bfb-a80a-19894f89a9b1",
+      "name": "Error Trigger",
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "manual",
+        "includeOtherFields": false,
+        "assignments": {
+          "assignments": [
+            {
+              "id": "e1",
+              "name": "workflow",
+              "value": "={{ $json.workflow?.name ?? \"desconocido\" }}",
+              "type": "string"
+            },
+            {
+              "id": "e2",
+              "name": "nodo_fallido",
+              "value": "={{ $json.execution?.lastNodeExecuted ?? $json.trigger?.error?.node?.name ?? \"trigger\" }}",
+              "type": "string"
+            },
+            {
+              "id": "e3",
+              "name": "mensaje",
+              "value": "={{ $json.execution?.error?.message ?? $json.trigger?.error?.message ?? \"sin mensaje\" }}",
+              "type": "string"
+            },
+            {
+              "id": "e4",
+              "name": "execution_id",
+              "value": "={{ $json.execution?.id ?? \"\" }}",
+              "type": "string"
+            },
+            {
+              "id": "e5",
+              "name": "execution_url",
+              "value": "={{ $json.execution?.url ?? \"\" }}",
+              "type": "string"
+            },
+            {
+              "id": "e6",
+              "name": "modo",
+              "value": "={{ $json.execution?.mode ?? \"\" }}",
+              "type": "string"
+            },
+            {
+              "id": "e7",
+              "name": "alerta",
+              "value": "=ALERTA AndesHogar: el flujo \"{{ $json.workflow?.name }}\" falló en el nodo \"{{ $json.execution?.lastNodeExecuted }}\": {{ $json.execution?.error?.message }}. Ver {{ $json.execution?.url }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "23bcd068-43e7-5a89-a016-0e736dd1256d",
+      "name": "Formatear alerta",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        240,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "row",
+        "operation": "insert",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "hrtrdBeHZTaDS55S",
+          "cachedResultName": "registro_errores"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "workflow": "={{ $json.workflow }}",
+            "nodo_fallido": "={{ $json.nodo_fallido }}",
+            "mensaje": "={{ $json.mensaje }}",
+            "execution_id": "={{ $json.execution_id }}",
+            "execution_url": "={{ $json.execution_url }}",
+            "modo": "={{ $json.modo }}"
+          },
+          "schema": [
+            {
+              "id": "workflow",
+              "displayName": "workflow",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "nodo_fallido",
+              "displayName": "nodo_fallido",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "mensaje",
+              "displayName": "mensaje",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "execution_id",
+              "displayName": "execution_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "execution_url",
+              "displayName": "execution_url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "modo",
+              "displayName": "modo",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "02fc3533-113e-5159-9921-8062c5787e79",
+      "name": "Registrar error",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        480,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Error Trigger": {
+      "main": [
+        [
+          {
+            "node": "Formatear alerta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Formatear alerta": {
+      "main": [
+        [
+          {
+            "node": "Registrar error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "active": false,
+  "tags": []
+}
