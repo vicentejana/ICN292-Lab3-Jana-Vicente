@@ -1,7 +1,7 @@
 # Laboratorio 3 - ICN292
 
 **Nombre:** Vicente Jaña Valencia  
-**RUT sin dígito verificador / Semilla S:** 284  
+**Semilla S:** 284  
 **Fecha:** 23 de septiembre de 2026
 
 ## Contenido del repositorio
